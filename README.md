@@ -33,12 +33,7 @@ It also works for img and video tags:
 <video src="./my-video.mp4" />
 ```
 
-# use globEager imports
-
-Provide a Path containing a `*`
-```md
-![My Images](./images/*.{jpg,jpeg,png})
-```
+# Import all files in a folder
 
 Create a layout file for replacing your img tags (or video tags)
 ```svelte
@@ -73,6 +68,19 @@ Create your tag component, multiple files are passed as object. You could also u
         <img {src} {alt} {...$$restProps} />
     {/each}
 {/if}
+```
+
+Now a Path containing a `*`...
+```md
+![My Images](./images/*.{jpg,jpeg,png})
+```
+
+… might result in this:
+```html
+<h2>My Images</h2>
+<img src="/src/content/images/1.jpeg" alt="My Images">
+<img src="/src/content/images/anotherImage.jpeg" alt="My Images">
+<img src="/src/content/images/3.jpeg" alt="My Images">
 ```
 
 **Todo**
