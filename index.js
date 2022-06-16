@@ -14,25 +14,31 @@ export default function relativeImages() {
 
     function transformUrl(url) {
       if (url.startsWith(".")) {
-        // filenames can start with digits,
-        // prepend underscore to guarantee valid module name
-        let camel = `_${toCamel(url)}`;
-        const count = url_count.get(camel);
-        const dupe = urls.get(url);
+        if(url.includes('*')) {
+          console.log('FOUND *')
+          let newUrl = `{import.meta.globEager('${url}')}`;
+          return newUrl;
+        } else {
+          // filenames can start with digits,
+          // prepend underscore to guarantee valid module name
+          let camel = `_${toCamel(url)}`;
+          const count = url_count.get(camel);
+          const dupe = urls.get(url);
 
-        if (count && !dupe) {
-          url_count.set(camel, count + 1);
-          camel = `${camel}_${count}`;
-        } else if (!dupe) {
-          url_count.set(camel, 1);
+          if (count && !dupe) {
+            url_count.set(camel, count + 1);
+            camel = `${camel}_${count}`;
+          } else if (!dupe) {
+            url_count.set(camel, 1);
+          }
+
+          urls.set(url, {
+            path: url,
+            id: camel,
+          });
+
+          return `{${camel}}`;
         }
-
-        urls.set(url, {
-          path: url,
-          id: camel,
-        });
-
-        return `{${camel}}`;
       }
 
       return url;
