@@ -3,6 +3,8 @@
 import { visit } from "unist-util-visit";
 import toCamel from "just-camel-case";
 
+let defaultWidth = 768;
+
 const RE_SCRIPT_START =
   /<script(?:\s+?[a-zA-z]+(=(?:["']){0,1}[a-zA-Z0-9]+(?:["']){0,1}){0,1})*\s*?>/;
 const RE_SRC = /src\s*=\s*"(.+?)"/;
@@ -14,9 +16,19 @@ export default function relativeImages() {
 
     function transformUrl(url) {
       if (url.startsWith(".")) {
+        let options;
+        let plainUrl;
+        [plainUrl, ...options] = url.split("?");
+        options = options.join('?') //.split("&").map(x => x.split("="));
+        // console.log(options)
+        options = new URLSearchParams(options);
+        let width = options.get("width") || options.get("w") || defaultWidth;
+        width = (parseInt(width) > 0) ? parseInt(width) : defaultWidth;
+        console.log(width)
+        console.log(options)
+
         if(url.includes('*')) {
-          console.log('FOUND *')
-          let newUrl = `{import.meta.globEager('${url}')}`;
+          let newUrl = `{import.meta.globEager('${plainUrl}')}`;
           return newUrl;
         } else {
           // filenames can start with digits,
@@ -33,7 +45,11 @@ export default function relativeImages() {
           }
 
           urls.set(url, {
-            path: url,
+            path: `${plainUrl}?w=${width}`,
+            optionsMeta: `w=${width}&metadata`,
+            optionsJpeg: `w=${Math.floor(width/0.5)};${Math.floor(width/0.6)};${width};${Math.floor(width/1.2)}&jpeg&srcset`,
+            optionsWebp: `w=${Math.floor(width/0.5)};${Math.floor(width/0.6)};${width};${Math.floor(width/1.2)}&webp&srcset`,
+            sizes: `(max-width: 672px) calc(100vw - 32px), 672px`,
             id: camel,
           });
 
@@ -65,7 +81,10 @@ export default function relativeImages() {
     });
 
     let scripts = "";
-    urls.forEach((x) => (scripts += `import ${x.id} from "${x.path}";\n`));
+    urls.forEach((x) => (scripts += `import ${x.id}Meta from "${x.path}?${x.optionsMeta}";\n
+    import ${x.id}Jpeg from "${x.path}?${x.optionsJpeg}";\n
+    import ${x.id}Webp from "${x.path}?${x.optionsWebp}";\n
+    const ${x.id} = {meta: ${x.id}Meta, srcsetJpeg: ${x.id}Jpeg, srcsetWebp: ${x.id}Webp};\n`));
 
     let is_script = false;
 
@@ -84,5 +103,6 @@ export default function relativeImages() {
         value: `<script>\n${scripts}</script>`,
       });
     }
+    // console.log(scripts)
   };
 }
