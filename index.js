@@ -45,10 +45,10 @@ export default function relativeImages() {
           }
 
           urls.set(url, {
-            path: `${plainUrl}?w=${width}`,
+            path: `${plainUrl}`,
             optionsMeta: `w=${width}&metadata`,
-            optionsJpeg: `w=${Math.floor(width/0.5)};${Math.floor(width/0.6)};${width};${Math.floor(width/1.2)}&jpeg&srcset`,
-            optionsWebp: `w=${Math.floor(width/0.5)};${Math.floor(width/0.6)};${width};${Math.floor(width/1.2)}&webp&srcset`,
+            optionsJpeg: `w=${Math.floor(width*2)};${Math.floor(width/0.6)};${width};${Math.floor(width/1.2)}&jpeg&srcset`,
+            optionsWebp: `w=${Math.floor(width*2)};${Math.floor(width/0.6)};${width};${Math.floor(width/1.2)}&webp&srcset`,
             sizes: `(max-width: 672px) calc(100vw - 32px), 672px`,
             id: camel,
           });
