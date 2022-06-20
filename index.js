@@ -82,17 +82,19 @@ export default function relativeImages() {
     
       async function transformUrl(url) {
         if (url.startsWith(".")) {
-          let options;
+          let optionsStr;
           let plainUrl;
-          let metaData = {imageDescription: '', artist: ''};
-          [plainUrl, ...options] = url.split("?");
-          options = options.join('?') //.split("&").map(x => x.split("="));
-          options = new URLSearchParams(options);
+          
+          [plainUrl, ...optionsStr] = url.split("?");
+          optionsStr = optionsStr.join('?')
+          let options = new URLSearchParams(optionsStr);
           let width = options.get("width") || options.get("w") || defaultWidth;
           width = (parseInt(width) > 0) ? parseInt(width) : defaultWidth;
-          // console.log(width)
-          // console.log(options)
-    
+
+          let filename = plainUrl.substring(plainUrl.lastIndexOf('/') + 1)
+          let title = filename.slice(0, filename.lastIndexOf(".")).replace(/\[\.\.\.\d*\]/, '')
+          let metaData = {title: title, url: plainUrl, description: '', artist: '', copyright: ''};
+
           if(url.includes('*')) {
 
             const fullPath = `${folder}/${plainUrl}`
@@ -100,15 +102,17 @@ export default function relativeImages() {
 
             let fileIds = [];
             for (const file of files) {
-              const fileId = await transformUrl(file.replace(`${folder}/`, "./"))
+              const fileUrl = file.replace(folder+'/', './')+`?${optionsStr}`
+              const fileId = await transformUrl(fileUrl)
               fileIds.push(fileId);
             }
 
-            let camel = `_${toCamel(fullPath)}`;
+            const fullIdentifier = `${fullPath}?${optionsStr}`
+            let camel = `_${toCamel(fullIdentifier)}`;
             const count = url_count.get(camel);
-            const dupe = wildcardUrls.get(fullPath);
+            const dupe = wildcardUrls.get(fullIdentifier);
 
-            wildcardUrls.set(fullPath, {
+            wildcardUrls.set(fullIdentifier, {
               fileIds: fileIds,
               id: camel
             });
@@ -121,6 +125,7 @@ export default function relativeImages() {
             }
 
             return `{${camel}}`;
+
           } else {
             // filenames can start with digits,
             // prepend underscore to guarantee valid module name
@@ -141,16 +146,18 @@ export default function relativeImages() {
               optionsJpeg: `w=${Math.floor(width*2)};${Math.floor(width/0.6)};${width};${Math.floor(width/1.2)}&jpeg&srcset`,
               optionsWebp: `w=${Math.floor(width*2)};${Math.floor(width/0.6)};${width};${Math.floor(width/1.2)}&webp&srcset`,
               sizes: `(max-width: 672px) calc(100vw - 32px), 672px`,
-              id: camel
+              id: camel,
+              metaData: metaData
             });
 
             const p = loadExifData(`${folder}/${plainUrl}`).then((exif) => {
-                if(exif)
-                  metaData = {imageDescription: exif.ImageDescription, artist: exif.Artist};
-                urls.set(url, {
-                  ...urls.get(url),
-                  metaData: metaData
-                });
+                if(exif){
+                  metaData = {title: title, url: plainUrl, description: (exif.ImageDescription ?? ''), artist: exif.Artist ?? '', copyright: exif.Copyright ?? ''};
+                  urls.set(url, {
+                    ...urls.get(url),
+                    metaData: metaData
+                  });
+                }
             });
             promises.push(p);
   
