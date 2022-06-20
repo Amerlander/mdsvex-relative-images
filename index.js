@@ -6,7 +6,7 @@ import exifParser from "fast-exif";
 // import globFs from "glob-fs";
 import glob from "glob";
 
-let defaultWidth = 768;
+let defaultWidth = 1280;
 
 const RE_SCRIPT_START =
   /<script(?:\s+?[a-zA-z]+(=(?:["']){0,1}[a-zA-Z0-9]+(?:["']){0,1}){0,1})*\s*?>/;
@@ -93,7 +93,7 @@ export default function relativeImages() {
 
           let filename = plainUrl.substring(plainUrl.lastIndexOf('/') + 1)
           let title = filename.slice(0, filename.lastIndexOf(".")).replace(/\[\.\.\.\d*\]/, '')
-          let metaData = {title: title, url: plainUrl, description: '', artist: '', copyright: ''};
+          let metaData = {width: width, title: title, url: plainUrl, description: '', artist: '', copyright: ''};
 
           if(url.includes('*')) {
 
@@ -143,16 +143,15 @@ export default function relativeImages() {
             urls.set(url, {
               path: `${plainUrl}`,
               optionsMeta: `w=${width}&metadata`,
-              optionsJpeg: `w=${Math.floor(width*2)};${Math.floor(width/0.6)};${width};${Math.floor(width/1.2)}&jpeg&srcset`,
-              optionsWebp: `w=${Math.floor(width*2)};${Math.floor(width/0.6)};${width};${Math.floor(width/1.2)}&webp&srcset`,
-              sizes: `(max-width: 672px) calc(100vw - 32px), 672px`,
+              optionsJpeg: `w=${Math.floor(width)};${Math.floor(width/1.2)};${width/2};${Math.floor(width/2.4)}&jpeg&srcset`,
+              optionsWebp: `w=${Math.floor(width)};${Math.floor(width/1.2)};${width/2};${Math.floor(width/2.4)}&webp&srcset`,
               id: camel,
               metaData: metaData
             });
 
             const p = loadExifData(`${folder}/${plainUrl}`).then((exif) => {
                 if(exif){
-                  metaData = {title: title, url: plainUrl, description: (exif.ImageDescription ?? ''), artist: exif.Artist ?? '', copyright: exif.Copyright ?? ''};
+                  metaData = {width: width, title: title, url: plainUrl, description: (exif.ImageDescription ?? ''), artist: exif.Artist ?? '', copyright: exif.Copyright ?? ''};
                   urls.set(url, {
                     ...urls.get(url),
                     metaData: metaData
