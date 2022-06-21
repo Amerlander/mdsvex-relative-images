@@ -71,8 +71,6 @@ export default function relativeImages() {
         });
       }
 
-      // console.log(scripts)
-
       return null;
 
       async function loadExifData(path) {
@@ -85,8 +83,8 @@ export default function relativeImages() {
           let optionsStr;
           let plainUrl;
           
-          [plainUrl, ...optionsStr] = url.split("?");
-          optionsStr = optionsStr.join('?')
+          [plainUrl, ...optionsStr] = url.split("|");
+          optionsStr = optionsStr.join('&')
           let options = new URLSearchParams(optionsStr);
           let width = options.get("width") || options.get("w") || defaultWidth;
           width = (parseInt(width) > 0) ? parseInt(width) : defaultWidth;
@@ -97,17 +95,17 @@ export default function relativeImages() {
 
           if(url.includes('*')) {
 
-            const fullPath = `${folder}/${plainUrl}`
-            let files = glob.sync(fullPath, []);
+            const fullPath = `${folder}/${plainUrl}`.replace('/./', '/')
+            let files = glob.sync(plainUrl, {cwd: folder});
 
             let fileIds = [];
             for (const file of files) {
-              const fileUrl = file.replace(folder+'/', './')+`?${optionsStr}`
+              const fileUrl = file.replace(folder+'/', './')+`|${optionsStr}`
               const fileId = await transformUrl(fileUrl)
               fileIds.push(fileId);
             }
 
-            const fullIdentifier = `${fullPath}?${optionsStr}`
+            const fullIdentifier = `${fullPath}${optionsStr}`
             let camel = `_${toCamel(fullIdentifier)}`;
             const count = url_count.get(camel);
             const dupe = wildcardUrls.get(fullIdentifier);
