@@ -6,7 +6,8 @@ import exifParser from "fast-exif";
 // import globFs from "glob-fs";
 import glob from "glob";
 
-let defaultWidth = 1280;
+const defaultWidth = 1280;
+const defaultHeight = 'auto';
 
 const RE_SCRIPT_START =
   /<script(?:\s+?[a-zA-z]+(=(?:["']){0,1}[a-zA-Z0-9]+(?:["']){0,1}){0,1})*\s*?>/;
@@ -49,7 +50,7 @@ export default function relativeImages() {
       urls.forEach((x) => (scripts += `import ${x.id}Meta from "${x.path}?${x.optionsMeta}";\n
       import ${x.id}Jpeg from "${x.path}?${x.optionsJpeg}";\n
       import ${x.id}Webp from "${x.path}?${x.optionsWebp}";\n
-      const ${x.id} = {meta: ${x.id}Meta, srcsetJpeg: ${x.id}Jpeg, srcsetWebp: ${x.id}Webp, exif: ${JSON.stringify(x.metaData)}};\n`));
+      const ${x.id} = {meta: ${x.id}Meta, srcsetJpeg: ${x.id}Jpeg, srcsetWebp: ${x.id}Webp, exif: ${JSON.stringify(x.metaData)}, options: ${JSON.stringify(x.options)}};\n`));
 
       wildcardUrls.forEach((x) => (scripts += `const ${x.id} = {files: [${(x.fileIds).join(',')}]};\n`));
     
@@ -81,17 +82,26 @@ export default function relativeImages() {
       async function transformUrl(url) {
         if (url.startsWith(".")) {
           let optionsStr;
+          let optionsArr;
+          let optionsObj;
           let plainUrl;
           
-          [plainUrl, ...optionsStr] = url.split("|");
-          optionsStr = optionsStr.join('&')
-          let options = new URLSearchParams(optionsStr);
-          let width = options.get("width") || options.get("w") || defaultWidth;
-          width = (parseInt(width) > 0) ? parseInt(width) : defaultWidth;
+          [plainUrl, ...optionsArr] = url.split("|");
+          optionsObj = Object.fromEntries(optionsArr.map(e => e.split("=")))
+          optionsStr = optionsArr.join('|')
+
+          let width = optionsObj.width || optionsObj.w || defaultWidth;
+          let height = optionsObj.height || optionsObj.h || defaultHeight;
+
+          if(width != 'auto')
+            width = (parseInt(width) > 0) ? parseInt(width) : defaultWidth;
+
+          if(height != 'auto')
+            height = (parseInt(height) > 0) ? parseInt(height) : defaultHeight;
 
           let filename = plainUrl.substring(plainUrl.lastIndexOf('/') + 1)
           let title = filename.slice(0, filename.lastIndexOf(".")).replace(/\[\.\.\.\d*\]/, '')
-          let metaData = {width: width, title: title, url: plainUrl, description: '', artist: '', copyright: ''};
+          let metaData = {width: width, height: height, title: title, url: plainUrl, description: '', artist: '', copyright: ''};
 
           if(url.includes('*')) {
 
@@ -138,18 +148,36 @@ export default function relativeImages() {
               url_count.set(camel, 1);
             }
 
+            let sizeStr
+            let sizesStr
+
+            if(height === 'auto' && width === 'auto') {
+              sizeStr = ``
+              sizesStr = ``
+            } else if(height === 'auto') {
+              sizeStr = `w=${width}`
+              sizesStr = `w=${Math.floor(width)};${Math.floor(width/1.2)};${width/2};${Math.floor(width/2.4)}`
+            } else if (width === 'auto'){
+              sizeStr = `h=${height}`
+              sizesStr = `h=${Math.floor(height)};${Math.floor(height/1.2)};${height/2};${Math.floor(height/2.4)}`
+            } else {
+              sizeStr = `w=${width}&h=${height}`
+              sizesStr = `w=${Math.floor(width)};${Math.floor(width/1.2)};${width/2};${Math.floor(width/2.4)}&h=${Math.floor(height)};${Math.floor(height/1.2)};${height/2};${Math.floor(height/2.4)}`
+            }
+
             urls.set(url, {
               path: `${plainUrl}`,
-              optionsMeta: `w=${width}&metadata`,
-              optionsJpeg: `w=${Math.floor(width)};${Math.floor(width/1.2)};${width/2};${Math.floor(width/2.4)}&jpeg&srcset`,
-              optionsWebp: `w=${Math.floor(width)};${Math.floor(width/1.2)};${width/2};${Math.floor(width/2.4)}&webp&srcset`,
+              optionsMeta: `${sizeStr}&jpeg&metadata`,
+              optionsJpeg: `${sizesStr}&jpeg&srcset`,
+              optionsWebp: `${sizesStr}&webp&srcset`,
               id: camel,
-              metaData: metaData
+              metaData: metaData,
+              options: optionsObj
             });
 
             const p = loadExifData(`${folder}/${plainUrl}`).then((exif) => {
                 if(exif){
-                  metaData = {width: width, title: title, url: plainUrl, description: (exif.ImageDescription ?? ''), artist: exif.Artist ?? '', copyright: exif.Copyright ?? ''};
+                  metaData = {width: width, height: height, title: title, url: plainUrl, description: (exif.ImageDescription ?? ''), artist: exif.Artist ?? '', copyright: exif.Copyright ?? ''};
                   urls.set(url, {
                     ...urls.get(url),
                     metaData: metaData
