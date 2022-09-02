@@ -47,10 +47,13 @@ export default function relativeImages() {
       await Promise.all(promises);
 
       let scripts = "";
-      urls.forEach((x) => (scripts += `import ${x.id}Meta from "${x.path}?${x.optionsMeta}";\n
-      import ${x.id}Jpeg from "${x.path}?${x.optionsJpeg}";\n
-      import ${x.id}Webp from "${x.path}?${x.optionsWebp}";\n
-      const ${x.id} = {meta: ${x.id}Meta, srcsetJpeg: ${x.id}Jpeg, srcsetWebp: ${x.id}Webp, exif: ${JSON.stringify(x.metaData)}, options: ${JSON.stringify(x.options)}};\n`));
+      urls.forEach((x) => {
+        scripts += `import ${x.id}Meta from "${x.path}?${x.optionsMeta}";\n`
+        scripts += `import ${x.id}Jpeg from "${x.path}?${x.optionsJpeg}";\n`
+        scripts += `import ${x.id}Webp from "${x.path}?${x.optionsWebp}";\n`
+        scripts += `const ${x.id} = {meta: ${x.id}Meta, srcsetJpeg: ${x.id}Jpeg, srcsetWebp: ${x.id}Webp, exif: ${JSON.stringify(x.metaData)}, options: ${JSON.stringify(x.options)}};\n`
+        return scripts;
+      });
 
       wildcardUrls.forEach((x) => (scripts += `const ${x.id} = {files: [${(x.fileIds).join(',')}]};\n`));
     
@@ -165,10 +168,12 @@ export default function relativeImages() {
               sizesStr = `w=${Math.floor(width)};${Math.floor(width/1.2)};${width/2};${Math.floor(width/2.4)}&h=${Math.floor(height)};${Math.floor(height/1.2)};${height/2};${Math.floor(height/2.4)}`
             }
 
+            let filetypeA = (filename.split(".").pop().toLowerCase() == 'gif') ? 'apng' : 'jpg';
+
             urls.set(url, {
               path: `${plainUrl}`,
-              optionsMeta: `${sizeStr}&jpeg&metadata`,
-              optionsJpeg: `${sizesStr}&jpeg&srcset`,
+              optionsMeta: `${sizeStr}&${filetypeA}&metadata`,
+              optionsJpeg: `${sizesStr}&${filetypeA}&srcset`,
               optionsWebp: `${sizesStr}&webp&srcset`,
               id: camel,
               metaData: metaData,
